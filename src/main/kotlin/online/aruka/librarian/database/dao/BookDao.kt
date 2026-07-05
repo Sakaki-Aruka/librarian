@@ -29,21 +29,32 @@ interface BookDao : SqlObject {
             require(column in ALLOWED_COLUMNS) { "invalid column: $column" }
         }
 
-        val exactConditions = exact.keys.map { "$it = :exact_$it" }
-        val partialConditions = partial.keys.map { "$it LIKE :partial_$it" }
+        // openBD/NDL典拠由来のauthorは "姓,名,生没年" のようにカンマ・空白を含む形で保存されているため、
+        // 自然に入力された検索語（カンマ・空白なし）でも一致するよう、カラム側・検索語側の双方から
+        // カンマと空白を取り除いた上で比較する。
+        val exactConditions = exact.keys.map { column -> "${columnExpr(column)} = :exact_$column" }
+        val partialConditions = partial.keys.map { column -> "${columnExpr(column)} LIKE :partial_$column" }
 
-        val bindings = exact.mapKeys { "exact_${it.key}" } +
-            partial.mapKeys { "partial_${it.key}" }.mapValues { "%${it.value}%" }
+        val exactBindings = exact.mapValues { (column, value) -> normalizeForSearch(column, value) }
+            .mapKeys { "exact_${it.key}" }
+        val partialBindings = partial.mapValues { (column, value) -> "%${normalizeForSearch(column, value)}%" }
+            .mapKeys { "partial_${it.key}" }
 
         return handle.createQuery(
             "SELECT * FROM books WHERE " + (exactConditions + partialConditions).joinToString(" AND ")
         )
-            .bindMap(bindings)
+            .bindMap(exactBindings + partialBindings)
             .mapTo(BookEntity::class.java)
             .list()
     }
 
     companion object {
         private val ALLOWED_COLUMNS = setOf("author", "title", "publisher", "genre", "memo", "isbn", "jan_code")
+
+        private fun columnExpr(column: String): String =
+            if (column == "author") "REPLACE(REPLACE(author, ',', ''), ' ', '')" else column
+
+        private fun normalizeForSearch(column: String, value: String): String =
+            if (column == "author") value.replace(",", "").replace(" ", "") else value
     }
 }
