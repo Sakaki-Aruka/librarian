@@ -21,21 +21,16 @@ object ISBN {
         .connectTimeout(Duration.ofSeconds(5))
         .build()
 
+    private const val MAX_ATTEMPTS = 4 // 初回 + 最大3回のリトライ
+    private val RETRY_DELAY_MILLIS = Duration.ofMillis(500).toMillis()
+
     fun fetchBookInfo(isbn: String): BookInfo? {
         val request = HttpRequest.newBuilder(URI.create("https://api.openbd.jp/v1/get?isbn=$isbn"))
             .timeout(Duration.ofSeconds(5))
             .GET()
             .build()
 
-        val response = try {
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        } catch (_: Exception) {
-            return null
-        }
-
-        if (response.statusCode() != 200) {
-            return null
-        }
+        val response = sendWithRetry(request) ?: return null
 
         val entry = try {
             gson.fromJson(response.body(), Array<OpenBdEntry?>::class.java).firstOrNull()
@@ -49,6 +44,26 @@ object ISBN {
             publisher = entry.summary?.publisher,
             price = entry.onix?.productSupply?.supplyDetail?.price?.firstOrNull()?.priceAmount?.toIntOrNull()
         )
+    }
+
+    // 通信例外や非200応答は一時的な障害の可能性があるため、初回を含め最大 MAX_ATTEMPTS 回まで試行する。
+    private fun sendWithRetry(request: HttpRequest): HttpResponse<String>? {
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val response = try {
+                httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            } catch (_: Exception) {
+                null
+            }
+
+            if (response != null && response.statusCode() == 200) {
+                return response
+            }
+
+            if (attempt < MAX_ATTEMPTS - 1) {
+                Thread.sleep(RETRY_DELAY_MILLIS)
+            }
+        }
+        return null
     }
 
     private data class OpenBdEntry(
