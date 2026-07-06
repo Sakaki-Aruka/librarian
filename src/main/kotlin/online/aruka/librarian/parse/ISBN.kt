@@ -9,6 +9,45 @@ import java.net.http.HttpResponse
 import java.time.Duration
 
 object ISBN {
+
+    fun isValidCode(code: String): Boolean {
+        return isValidIsbn10(code) || isValidIsbn13(code)
+    }
+
+    private val isbn10Pattern = Regex("([0-9]{1,5})[- ]?([0-9]+)[- ]?([0-9]+)[- ]?([0-9X])")
+    fun isValidIsbn10(code: String): Boolean {
+        val formattedCode: String = code.replace(Regex("[- ]"), "")
+        if (!isbn10Pattern.matches(code) || formattedCode.length != 10) {
+            return false
+        }
+
+        val checkDigit: Char = formattedCode.last()
+        val sum: Int = (2..10).reversed().withIndex()
+            .sumOf { (index, weight) -> formattedCode[index].digitToInt() * weight }
+
+        val calculatedDigitNum: Int = (11 - (sum % 11)) % 11
+        return if (calculatedDigitNum < 10) {
+            calculatedDigitNum.toChar() == checkDigit
+        } else {
+            checkDigit == 'X'
+        }
+    }
+
+    // nnn-G(GGGG)-AAAA-BBBB-C
+    private val isbn13Pattern = Regex("97[89][- ]?([0-9]{1,5})[- ]?([0-9]+)[- ]?([0-9]+)[- ]?([0-9])")
+    fun isValidIsbn13(code: String): Boolean {
+        val formattedCode: String = code.replace(Regex("[- ]"), "")
+        if (!isbn13Pattern.matches(code) || formattedCode.length != 13) {
+            return false
+        }
+
+        val checkDigit: Int = formattedCode.last().digitToInt()
+        val sum: Int = (1..12).withIndex()
+            .sumOf { (index, i) -> formattedCode[index].digitToInt() * (if (i % 2 == 0) 3 else 1) }
+        val calculatedDigit: Int = (10 - (sum % 10)) % 10
+        return checkDigit == calculatedDigit
+    }
+
     data class BookInfo(
         val title: String?,
         val author: String?,

@@ -87,6 +87,12 @@ class Add : LibrarianCommand(name = "add") {
             }
         }
 
+        effectiveIsbn?.let {
+            if (!ISBN.isValidCode(it)) {
+                throw CliktError("ISBNコードが不正です。正しく入力してください。")
+            }
+        }
+
         val janClassification = effectiveJanCode?.let { BookJAN.getClassificationCode(it).getOrNull()?.toString()?.padStart(4, '0') }
         val janPrice = effectiveJanCode?.let { BookJAN.getPrice(it).getOrNull() }
 
