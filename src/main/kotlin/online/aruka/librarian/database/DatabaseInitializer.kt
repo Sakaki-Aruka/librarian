@@ -1,5 +1,6 @@
 package online.aruka.librarian.database
 
+import online.aruka.librarian.database.dao.SeriesRow
 import online.aruka.librarian.database.entity.BookEntity
 import org.jdbi.v3.core.Jdbi
 import org.jdbi.v3.core.mapper.reflect.ConstructorMapper
@@ -43,6 +44,7 @@ object DatabaseInitializer {
         db.installPlugin(SQLitePlugin())
         db.installPlugin(SqlObjectPlugin())
         db.registerRowMapper(ConstructorMapper.factory(BookEntity::class.java))
+        db.registerRowMapper(ConstructorMapper.factory(SeriesRow::class.java))
 
         db.useHandle<Exception> { handle ->
             handle.execute("""
@@ -56,6 +58,22 @@ object DatabaseInitializer {
                 memo TEXT,
                 isbn TEXT,
                 jan_code TEXT
+                )
+            """.trimIndent())
+
+            handle.execute("""
+                CREATE TABLE IF NOT EXISTS series (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                status TEXT NOT NULL
+                )
+            """.trimIndent())
+
+            handle.execute("""
+                CREATE TABLE IF NOT EXISTS series_isbn (
+                series_id INTEGER NOT NULL REFERENCES series(id),
+                isbn TEXT NOT NULL,
+                PRIMARY KEY (series_id, isbn)
                 )
             """.trimIndent())
         }

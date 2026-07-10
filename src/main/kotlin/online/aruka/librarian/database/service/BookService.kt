@@ -9,6 +9,8 @@ class BookService(jdbi: Jdbi) {
 
     fun add(book: BookEntity.New): Long = dao.insert(book)
 
+    fun ownedIsbns(): Set<String> = dao.findAllIsbns().toSet()
+
     fun search(exact: Map<String, String> = emptyMap(), partial: Map<String, String> = emptyMap()): List<BookEntity> =
         dao.search(exact, partial)
 

@@ -117,6 +117,81 @@ librarian init [--db <path>]
 
 フィルタも `--all` も指定せずに実行するとヘルプを表示して処理を中断する（誤って全件削除するのを防ぐため）。`--jancode` はチェックデジットが不正な場合エラーで中断する。
 
+### series
+
+書籍のシリーズを管理する（`series add` / `series update` / `series delete` / `series list` のサブコマンド）。
+
+シリーズは「タイトル」「状態（`ongoing`＝継続中 / `completed`＝完結）」「所属する全巻の既知ISBNリスト」を持つ。このISBNリストは**そのシリーズに存在する全巻分**であり、所有・未所有を区別しない。所有しているかどうかの判定は librarian 側では行わず、`series list` の出力と `list` コマンドの所有ISBN出力をシェル側（`comm`/`diff`/`grep`等）で突き合わせて確認する運用を想定している。
+
+#### series add
+
+シリーズを新規登録する。
+
+| オプション | 説明 |
+|---|---|
+| `--title` | シリーズのタイトル（必須） |
+| `--status` | `ongoing` または `completed`（必須） |
+| `--isbn` | シリーズに含まれるISBN（複数指定可）。未指定時は、非対話環境（パイプ/リダイレクト）に限り標準入力から1行1ISBNで読み込む |
+
+```
+librarian series add --title "サンプルシリーズ" --status ongoing --isbn 9784088725093 --isbn 9784088725123
+
+# AI等がまとめて生成したISBNリストをそのまま流し込む
+librarian series add --title "サンプルシリーズ" --status ongoing < isbn_list.txt
+```
+
+#### series update
+
+登録済みのシリーズを更新する。`--id` で対象を指定する。
+
+| オプション | 説明 |
+|---|---|
+| `--id` | 更新対象のシリーズID（必須） |
+| `--title` | タイトルを変更する |
+| `--status` | 状態を変更する（`ongoing` / `completed`） |
+| `--isbn` | 追加するISBN（複数指定可）。未指定時は非対話環境に限り標準入力から読み込む |
+| `--remove-isbn` | 削除するISBN（複数指定可、誤登録の訂正用） |
+
+`--title`/`--status`/`--isbn`/`--remove-isbn` のいずれも指定しない場合はエラーで中断する。
+
+```
+librarian series update --id 3 --isbn 9784088725161   # 新刊のISBNを追記
+librarian series update --id 3 --status completed     # 完結扱いに変更
+librarian series update --id 3 --remove-isbn 9784088725093  # 誤登録を削除
+```
+
+#### series delete
+
+シリーズを削除する（`--id` で対象を指定）。
+
+```
+librarian series delete --id 3
+```
+
+#### series list
+
+条件に一致するシリーズの一覧を表示する。
+
+| オプション | 意味 |
+|---|---|
+| `--id` | シリーズIDの完全一致条件 |
+| `--title` | タイトルの完全一致条件 |
+| `--ktitle` | タイトルの部分一致キーワード |
+| `--1` | ヘッダー行の後、ISBNを1行1件で列挙する |
+| `--jsonl` | マッチしたシリーズごとに1行1JSONオブジェクト（JSON Lines）`{"id":..,"title":..,"status":..,"books":[...]}` で出力する |
+| `--json` | マッチした全件を1つのJSON配列でラップして出力する（`[{...}, {...}]`） |
+| `--not` | ISBN欄を、そのシリーズのうち**未所持**のISBNだけに絞る。未所持巻が0件（全巻所持済み）のシリーズは結果から除外される |
+
+出力形式のオプションを何も指定しない場合は `[<id>] タイトル: <title> (<status>) ISBN: <isbn1>,<isbn2>,...` の1行で表示する。いずれの形式でも `id`/`title`/`status` は必ず含まれる。
+
+```
+librarian series list
+librarian series list --ktitle サンプル --jsonl | jq -c .
+
+# 所有DBと突き合わせて、新刊など未所持巻があるシリーズだけを確認する
+librarian series list --not
+```
+
 ## 使用例
 
 ```

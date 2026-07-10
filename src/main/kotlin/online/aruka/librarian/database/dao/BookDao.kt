@@ -19,6 +19,9 @@ interface BookDao : SqlObject {
     @SqlQuery("SELECT * FROM books")
     fun findAllBooks(): List<BookEntity>
 
+    @SqlQuery("SELECT isbn FROM books WHERE isbn IS NOT NULL")
+    fun findAllIsbns(): List<String>
+
     @SqlUpdate("DELETE FROM books WHERE id = :id")
     fun deleteById(@Bind("id") id: Long): Int
 

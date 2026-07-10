@@ -8,6 +8,6 @@ class Librarian : NoOpCliktCommand(name = "librarian") {
     override fun help(context: Context) = "書籍情報を管理するCLIツール"
 
     init {
-        subcommands(Add(), Delete(), Display(), Init())
+        subcommands(Add(), Delete(), Display(), Init(), Series())
     }
 }
