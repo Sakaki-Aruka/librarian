@@ -28,7 +28,7 @@ class SeriesService(jdbi: Jdbi) {
         addIsbns.forEach { dao.insertIsbn(id, it) }
         removeIsbns.forEach { dao.deleteIsbn(id, it) }
 
-        return dao.findEntityById(id)!!
+        return dao.findEntityById(id) ?: throw NoSuchElementException("更新後のシリーズを取得できませんでした: $id")
     }
 
     fun delete(id: Long): SeriesEntity {
