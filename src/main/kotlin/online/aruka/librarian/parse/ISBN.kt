@@ -27,7 +27,7 @@ object ISBN {
 
         val calculatedDigitNum: Int = (11 - (sum % 11)) % 11
         return if (calculatedDigitNum < 10) {
-            calculatedDigitNum.toChar() == checkDigit
+            calculatedDigitNum.digitToChar() == checkDigit
         } else {
             checkDigit == 'X'
         }
