@@ -7,7 +7,6 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.entity.SeriesStatus
 import online.aruka.librarian.database.service.SeriesService
 import online.aruka.librarian.parse.ISBN
@@ -28,7 +27,7 @@ class SeriesUpdate : LibrarianCommand(name = "update") {
         help = "削除するISBN（複数指定可、誤登録の訂正用）"
     ).multiple()
 
-    override fun run() {
+    override fun runCommand() {
         val addIsbns = resolveIsbnInput(isbn)
         addIsbns.forEach {
             if (!ISBN.isValidCode(it)) {
@@ -40,9 +39,8 @@ class SeriesUpdate : LibrarianCommand(name = "update") {
             throw CliktError("更新内容が指定されていません。--title / --status / --isbn / --remove-isbn のいずれかを指定してください。")
         }
 
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
         val updated = try {
-            SeriesService(jdbi).update(
+            SeriesService(openDatabase()).update(
                 id = id,
                 title = title,
                 status = status,

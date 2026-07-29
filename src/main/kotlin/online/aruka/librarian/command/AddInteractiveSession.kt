@@ -31,9 +31,14 @@ internal class AddInteractiveSession(
 
     private val buffer = mutableListOf<BookEntity.New>()
     private var fieldMode: FieldMode? = null
+    private lateinit var service: BookService
 
     fun run(initialMode: FieldMode?) {
         fieldMode = initialMode
+
+        // 最後の書き込みで初めてDBの不備に気づくと入力内容を失うため、セッション開始前に接続を確立しておく。
+        service = BookService(DatabaseInitializer.open(DatabaseInitializer.Config(dbPath)))
+
         echo("インタラクティブモードに入りました。'h' または 'help' でヘルプ、'exit' で終了します。")
 
         val terminal = TerminalBuilder.builder().build()
@@ -181,16 +186,22 @@ internal class AddInteractiveSession(
         }
     }
 
+    // 書き込みに失敗した場合、入力し直せるよう未登録分を必ず画面に残す。
     private fun flush() {
-        if (buffer.isEmpty()) return
-
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
-        val service = BookService(jdbi)
-        buffer.forEach { book ->
-            val id = service.add(book)
+        while (buffer.isNotEmpty()) {
+            val book = buffer.first()
+            val id = try {
+                service.add(book)
+            } catch (e: Exception) {
+                echo("登録に失敗しました: ${rootCauseMessage(e)}")
+                echo("以下の${buffer.size}件は登録されていません:")
+                buffer.forEach { echo("  $it") }
+                buffer.clear()
+                throw CliktError("インタラクティブモードを中断しました。")
+            }
+            buffer.removeFirst()
             echo("登録待ちから書籍情報を取り出して登録しました (id=$id): $book")
         }
-        buffer.clear()
     }
 
     private fun tokenize(input: String): List<String> {

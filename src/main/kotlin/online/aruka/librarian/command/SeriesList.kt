@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
 import com.google.gson.Gson
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.entity.SeriesEntity
 import online.aruka.librarian.database.service.BookService
 import online.aruka.librarian.database.service.SeriesService
@@ -30,8 +29,8 @@ class SeriesList : LibrarianCommand(name = "list") {
 
     private val gson = Gson()
 
-    override fun run() {
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
+    override fun runCommand() {
+        val jdbi = openDatabase()
         val matched = SeriesService(jdbi).search(id = id, exactTitle = title, keywordTitle = kTitle)
 
         val seriesList = if (not) {

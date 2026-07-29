@@ -3,7 +3,6 @@ package online.aruka.librarian.command
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.option
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.service.BookService
 import online.aruka.librarian.parse.BookJAN
 
@@ -23,7 +22,7 @@ class Display : LibrarianCommand(name = "list") {
     private val kPublisher: String? by option("--kpublisher", help = "出版社の部分一致キーワード")
     private val kGenre: String? by option("--kgenre", help = "ジャンルの部分一致キーワード")
 
-    override fun run() {
+    override fun runCommand() {
         janCode?.let {
             if (!BookJAN.isValidCode(it)) {
                 throw CliktError("JANコードが不正です。正しく入力してください。")
@@ -46,8 +45,7 @@ class Display : LibrarianCommand(name = "list") {
             kGenre?.let { put("genre", it) }
         }
 
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
-        val books = BookService(jdbi).search(exact, partial)
+        val books = BookService(openDatabase()).search(exact, partial)
 
         books.forEach { echo(it.toString()) }
     }

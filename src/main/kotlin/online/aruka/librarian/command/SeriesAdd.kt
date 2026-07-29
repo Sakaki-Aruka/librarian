@@ -6,7 +6,6 @@ import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.entity.SeriesEntity
 import online.aruka.librarian.database.entity.SeriesStatus
 import online.aruka.librarian.database.service.SeriesService
@@ -24,7 +23,7 @@ class SeriesAdd : LibrarianCommand(name = "add") {
         help = "シリーズに含まれるISBN（複数指定可、未指定時は標準入力から1行1ISBNで読み込み）"
     ).multiple()
 
-    override fun run() {
+    override fun runCommand() {
         val isbns = resolveIsbnInput(isbn)
         isbns.forEach {
             if (!ISBN.isValidCode(it)) {
@@ -32,8 +31,7 @@ class SeriesAdd : LibrarianCommand(name = "add") {
             }
         }
 
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
-        val id = SeriesService(jdbi).add(SeriesEntity.New(title = title, status = status, isbns = isbns))
+        val id = SeriesService(openDatabase()).add(SeriesEntity.New(title = title, status = status, isbns = isbns))
         echo("シリーズを登録しました (id=$id): $title [${status.value}] ISBN数=${isbns.size}")
     }
 }

@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.service.SeriesService
 
 class SeriesDelete : LibrarianCommand(name = "delete") {
@@ -13,10 +12,9 @@ class SeriesDelete : LibrarianCommand(name = "delete") {
 
     private val id: Long by option("--id", help = "削除対象のシリーズID").long().required()
 
-    override fun run() {
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
+    override fun runCommand() {
         val deleted = try {
-            SeriesService(jdbi).delete(id)
+            SeriesService(openDatabase()).delete(id)
         } catch (e: NoSuchElementException) {
             throw CliktError(e.message ?: "削除対象が見つかりません。")
         }

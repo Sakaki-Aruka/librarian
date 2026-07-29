@@ -4,7 +4,6 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.service.BookService
 import online.aruka.librarian.parse.BookJAN
 
@@ -29,7 +28,7 @@ class Delete : LibrarianCommand(name = "delete") {
     private val all: Boolean by option("--all", help = "フィルタを何も指定せず全件削除する場合に必須のフラグです。")
         .flag(default = false)
 
-    override fun run() {
+    override fun runCommand() {
         janCode?.let {
             if (!BookJAN.isValidCode(it)) {
                 throw CliktError("JANコードが不正です。正しく入力してください。")
@@ -57,8 +56,7 @@ class Delete : LibrarianCommand(name = "delete") {
             return
         }
 
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
-        val service = BookService(jdbi)
+        val service = BookService(openDatabase())
 
         if (dryRun) {
             val targets = service.search(exact, partial)

@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
-import online.aruka.librarian.database.DatabaseInitializer
 import online.aruka.librarian.database.entity.BookEntity
 import online.aruka.librarian.database.service.BookService
 import online.aruka.librarian.parse.BookJAN
@@ -52,9 +51,15 @@ class Add : LibrarianCommand(name = "add") {
     // AddInteractiveSession が使い捨てのAddインスタンスを生成する際、登録内容の受け取り先として設定するフック。
     internal var onBuilt: ((BookEntity.New) -> Unit)? = null
 
-    override fun run() {
+    override fun runCommand() {
         val registering = author != null || title != null || price != null || publisher != null ||
             genre != null || memo != null || isbn != null || janCode != null || codeSet != null || dryRun
+
+        // 登録する値も対話モードの指定もない場合は、何も起きずに終わると分かりづらいのでヘルプを表示する。
+        if (!registering && !interactive) {
+            echoFormattedHelp()
+            return
+        }
 
         if (registering) {
             addOnce()
@@ -123,7 +128,7 @@ class Add : LibrarianCommand(name = "add") {
             return
         }
 
-        val jdbi = DatabaseInitializer.open(DatabaseInitializer.Config(dbPath))
+        val jdbi = openDatabase()
 
         if (dryRun) {
             echo("[dry-run] 登録される内容: $newBook")
